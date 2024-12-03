@@ -1,4 +1,6 @@
 import pygame, sys
+from PIL.ImageChops import screen
+
 from bullet import Bullet
 from ino import Ino
 import time
@@ -39,22 +41,30 @@ def update(bg_color, screen, gun, inos, bullets):
     pygame.display.flip()
 
 
-def update_bullets(inos, bullets):
+def update_bullets(screen, inos, bullets):
     """Обновление позиции пуль"""
     bullets.update()
     for bullet in bullets.copy():
         if bullet.rect.bottom <= 0:
             bullets.remove(bullet)
     collisions = pygame.sprite.groupcollide(bullets, inos, True, True)
+    if len(inos) == 0:
+        bullets.empty()
+        create_army(screen,inos)
+
 
 def gun_kill(stats, screen, gun, inos, bullets):
     """Столкновение пушки с пришельцами"""
-    stats.guns_left -= 1
-    inos.empty()
-    bullets.empty()
-    create_army(screen, inos)
-    gun.create_gun()
-    time.sleep(1)
+    if stats.guns_left > 0:
+        stats.guns_left -= 1
+        inos.empty()
+        bullets.empty()
+        create_army(screen, inos)
+        gun.create_gun()
+        time.sleep(1)
+    else:
+        stats.run_game = False
+        sys.exit()
 
 
 def update_inos(stats, screen, gun, inos, bullets):
@@ -62,6 +72,16 @@ def update_inos(stats, screen, gun, inos, bullets):
     inos.update()
     if pygame.sprite.spritecollideany(gun, inos):
         gun_kill(stats, screen, gun, inos, bullets)
+    inos_check(stats, screen, gun, inos, bullets)
+
+
+def inos_check(stats, screen, gun, inos, bullets):
+    """Проверяем, добрались лии пришельцы до края экрана"""
+    screen_rect = screen.get_rect()
+    for ino in inos.sprites():
+        if ino.rect.bottom >= screen_rect.bottom:
+            gun_kill(stats, screen, gun, inos, bullets)
+            break
 
 
 def create_army(screen, inos):
